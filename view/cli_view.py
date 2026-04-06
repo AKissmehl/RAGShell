@@ -151,10 +151,37 @@ class CLIView:
         1. Configure System Prompt
         2. Load Documents to Vector DB
         3. View Current Configuration
-        4. Back to main menu
+        4. Quick LLM Download
+        5. Back to main menu
         """
         self.console.print(Panel(menu_items, title="[bold blue]RAG Configuration[/bold blue]", border_style="blue"))
-        return Prompt.ask("\n[bold blue]Select an option[/bold blue]", default="4")
+        return Prompt.ask("\n[bold blue]Select an option[/bold blue]", default="5")
+
+    def show_llm_provider_menu(self) -> str:
+        """Shows LLM provider selection menu and returns the choice."""
+        # This method is no longer used - download happens automatically in _switch_llm_provider
+        return "1"
+
+    def show_folder_selection_dialog(self, default_path: str) -> str:
+        """Shows folder selection dialog and returns the selected path."""
+        self._clear_screen()
+        title = Text("Select Document Folder", style="bold blue", justify="center")
+        self.console.print(Panel(title, box=ROUNDED, border_style="blue"))
+        
+        menu_items = f"""
+        1. Use default folder: {default_path}
+        2. Choose custom folder
+        """
+        self.console.print(Panel(menu_items, title="[bold blue]Folder Selection[/bold blue]", border_style="blue"))
+        choice = Prompt.ask("\n[bold blue]Select an option[/bold blue]", default="1")
+        
+        if choice == "1":
+            return default_path
+        elif choice == "2":
+            custom_path = Prompt.ask("[bold blue]Enter custom folder path[/bold blue]")
+            return custom_path.strip()
+        else:
+            return default_path
 
     def show_error(self, message: str):
         """Shows an error message."""
