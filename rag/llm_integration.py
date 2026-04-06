@@ -4,12 +4,9 @@ LLM Integration Module.
 This module provides integration with various LLM providers including:
 - Llama.cpp (default)
 - GPT4All (alternative)
-- Mock LLM (for testing)
 """
 
-from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
-import os
 
 
 class BaseLLM(ABC):
@@ -29,37 +26,26 @@ class BaseLLM(ABC):
         """
         pass
 
-
-class MockLLM(BaseLLM):
-    """Mock LLM for testing without a real LLM."""
-
-    def generate(self, prompt: str, **kwargs) -> str:
-        """
-        Generate a mock response.
-
-        Args:
-            prompt: The input prompt.
-            **kwargs: Additional generation parameters.
-
-        Returns:
-            Mock generated text.
-        """
-        return f"You forgot to set up the ChromaDB. Check the settings!"
-
-
 class LlamaCppLLM(BaseLLM):
     """LLM integration using Llama.cpp."""
 
-    def __init__(self, model_path: str, context_window: int = 2048):
+    def __init__(self, model_path: str, context_window: int = 2048, generation_params: dict = None):
         """
         Initialize Llama.cpp LLM.
 
         Args:
             model_path: Path to the GGUF model file.
             context_window: Context window size.
+            generation_params: Dictionary of generation parameters.
         """
         self.model_path = model_path
         self.context_window = context_window
+        self.generation_params = generation_params or {
+            "max_tokens": 512,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "echo": False
+        }
         self.llama = None
         
         try:
@@ -87,14 +73,11 @@ class LlamaCppLLM(BaseLLM):
         if not self.llama:
             raise RuntimeError("Llama.cpp model is not loaded")
 
-        # Set default generation parameters
-        params = {
-            "max_tokens": 512,
-            "temperature": 0.7,
-            "top_p": 0.9,
-            "echo": False,
-            **kwargs
-        }
+        # Start with default generation parameters from config
+        params = self.generation_params.copy()
+        
+        # Override with any kwargs provided to the method
+        params.update(kwargs)
 
         try:
             result = self.llama(prompt, **params)
@@ -161,24 +144,23 @@ class LLMIntegration:
     """Factory class for LLM integrations."""
 
     @staticmethod
-    def create_llm(provider: str, model_path: str, context_window: int = 2048) -> BaseLLM:
+    def create_llm(provider: str, model_path: str, context_window: int = 2048, generation_params: dict = None) -> BaseLLM:
         """
         Create an LLM instance based on the provider.
 
         Args:
-            provider: LLM provider ('mock', 'llama_cpp', or 'gpt4all').
+            provider: LLM provider ('llama_cpp', or 'gpt4all').
             model_path: Path to the model file.
             context_window: Context window size.
+            generation_params: Dictionary of generation parameters.
 
         Returns:
             BaseLLM instance.
         """
         provider = provider.lower()
 
-        if provider == "mock":
-            return MockLLM()
-        elif provider == "llama_cpp":
-            return LlamaCppLLM(model_path, context_window)
+        if provider == "llama_cpp":
+            return LlamaCppLLM(model_path, context_window, generation_params)
         elif provider == "gpt4all":
             return GPT4AllLLM(model_path, context_window)
         else:

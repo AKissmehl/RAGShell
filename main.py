@@ -41,20 +41,23 @@ class Controller:
             llm_config = config.get("llm", {})
             rag_config = config.get("rag", {})
 
-            # Initialize LLM with fallback handling
-            provider = llm_config.get("provider", "mock")
+            # Initialize LLM with proper error handling
+            provider = llm_config.get("provider", "llama_cpp")  # Default to llama_cpp
             model_path = llm_config.get("model_path", "")
             context_window = llm_config.get("context_window", 2048)
+            
+            # Get generation parameters from config
+            generation_params = llm_config.get("generation_params", {})
 
             try:
-                self.llm = LLMIntegration.create_llm(provider, model_path, context_window)
+                self.llm = LLMIntegration.create_llm(provider, model_path, context_window, generation_params)
                 # Update configuration to reflect the actual provider being used
                 llm_config['provider'] = provider
                 self.config.update_config({"llm": llm_config})
                 self.config.save_config(self.config.config)
 
             except ImportError as e:
-                if "llama-cpp-python" in str(e) and provider != "mock":
+                if "llama-cpp-python" in str(e):
                     self.view.show_error(f"Missing dependency: {str(e)}")
                     self.view.show_success("Attempting to install llama-cpp-python...")
                     try:
@@ -68,17 +71,11 @@ class Controller:
                         )
                         self.view.show_success("✓ llama-cpp-python installed successfully!")
                         # Try to create LLM again
-                        self.llm = LLMIntegration.create_llm(provider, model_path, context_window)
+                        self.llm = LLMIntegration.create_llm(provider, model_path, context_window, generation_params)
                     except Exception as install_error:
                         self.view.show_error(f"Failed to install llama-cpp-python: {str(install_error)}")
-                        self.view.show_error("Falling back to Mock LLM...")
-                        # Fall back to mock LLM
-                        provider = "mock"
-                        llm_config['provider'] = "mock"
-                        self.llm = LLMIntegration.create_llm("mock", "", context_window)
-                        # Update and save configuration
-                        self.config.update_config({"llm": llm_config})
-                        self.config.save_config(self.config.config)
+                        self.view.show_error("Please install llama-cpp-python manually and restart.")
+                        raise
                 else:
                     raise e
 
@@ -91,41 +88,22 @@ class Controller:
                     if self._download_model():
                         # Try to create LLM again after successful download
                         try:
-                            self.llm = LLMIntegration.create_llm(provider, model_path, context_window)
+                            self.llm = LLMIntegration.create_llm(provider, model_path, context_window, generation_params)
                         except Exception as retry_error:
                             self.view.show_error(f"Failed to load model after download: {str(retry_error)}")
-                            self.view.show_error("Falling back to Mock LLM...")
-                            # Fall back to mock LLM
-                            provider = "mock"
-                            llm_config['provider'] = "mock"
-                            self.llm = LLMIntegration.create_llm("mock", "", context_window)
-                            # Update and save configuration
-                            self.config.update_config({"llm": llm_config})
-                            self.config.save_config(self.config.config)
+                            self.view.show_error("Please check the model file and restart the application.")
+                            raise
                     else:
                         self.view.show_error("❌ Model download failed")
                         self.view.show_error("Please check your internet connection and try again.")
-                        self.view.show_error("Falling back to Mock LLM...")
-                        # Fall back to mock LLM
-                        provider = "mock"
-                        llm_config['provider'] = "mock"
-                        self.llm = LLMIntegration.create_llm("mock", "", context_window)
-                        # Update and save configuration
-                        self.config.update_config({"llm": llm_config})
-                        self.config.save_config(self.config.config)
+                        raise
                 else:
                     raise e
 
             except Exception as e:
                 self.view.show_error(f"Failed to initialize LLM: {str(e)}")
-                self.view.show_error("Falling back to Mock LLM...")
-                # Fall back to mock LLM
-                provider = "mock"
-                llm_config['provider'] = "mock"
-                self.llm = LLMIntegration.create_llm("mock", "", context_window)
-                # Update and save configuration
-                self.config.update_config({"llm": llm_config})
-                self.config.save_config(self.config.config)
+                self.view.show_error("Please check your configuration and try again.")
+                raise
 
             # Initialize document processor
             chunk_size = rag_config.get("chunk_size", 512)
@@ -138,7 +116,7 @@ class Controller:
 
             # Initialize RAG pipeline (will be updated when vector DB is loaded)
             if self.llm and self.vector_db:
-                self.rag_pipeline = RAGPipeline(self.vector_db, self.llm)
+                self.rag_pipeline = RAGPipeline(self.vector_db, self.llm, self.system_prompt)
 
         except Exception as e:
             self.view.show_error(f"Failed to initialize RAG components: {str(e)}")
@@ -218,9 +196,28 @@ class Controller:
         self.view.console.print("Current system prompt:")
         self.view.console.print(Panel(current_prompt, border_style="yellow"))
 
-        new_prompt = Prompt.ask("\n[bold blue]Enter new system prompt[/bold blue] (or press Enter to keep current)")
+        # Use console.input instead of Prompt.ask to support multi-line input
+        self.view.console.print("\n[bold blue]Enter new system prompt[/bold blue] (or press Enter to keep current)")
+        self.view.console.print("(Press Enter twice on an empty line to finish)")
+        
+        # Read multiple lines until two consecutive empty lines
+        lines = []
+        while True:
+            try:
+                line = input(">> ")  # Use plain input for multi-line support
+                if line == "":
+                    # Check if this is the second consecutive empty line
+                    if len(lines) > 0 and lines[-1] == "":
+                        break
+                lines.append(line)
+            except KeyboardInterrupt:
+                self.view.show_success("System prompt configuration cancelled.")
+                return
+        
+        # Join lines and clean up
+        new_prompt = "\n".join(lines).strip()
 
-        if new_prompt.strip():
+        if new_prompt:
             self.system_prompt = new_prompt
             self.view.show_success("System prompt updated successfully!")
         else:
@@ -283,7 +280,7 @@ class Controller:
 
             # Update RAG pipeline with the loaded vector DB
             if self.llm and self.vector_db:
-                self.rag_pipeline = RAGPipeline(self.vector_db, self.llm)
+                self.rag_pipeline = RAGPipeline(self.vector_db, self.llm, self.system_prompt)
 
             self.view.show_success(f"Successfully loaded {self.documents_loaded} document chunks from {len(file_paths)} files to vector database!")
             self.view.show_success("Vector DB is now ready for RAG operations.")
@@ -318,9 +315,11 @@ class Controller:
         llm_config = self.config.get_llm_config()
         rag_config = self.config.get_rag_config()
 
+        # Escape newlines in system prompt for proper display
+        escaped_prompt = self.system_prompt.replace('\n', ' \\n ')
         config_info = f"""
 System Prompt:
-{self.system_prompt}
+{escaped_prompt}
 
 LLM Configuration:
   Provider: {llm_config.get('provider', 'not configured')}
@@ -377,7 +376,7 @@ Runtime Status:
             )
             
             # Rename the file to our expected name
-            expected_path = "models/tinyllama-1.1b.gguf"
+            expected_path = "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
             if model_path != expected_path:
                 os.rename(model_path, expected_path)
                 model_path = expected_path

@@ -4,12 +4,9 @@ Document Processor Module.
 This module handles document loading, splitting, and embedding for the RAG pipeline.
 """
 
-from typing import List, Dict, Any, Optional
-from pathlib import Path
 import hashlib
-
-from sympy.codegen import Print
-from torchgen.api.lazy import process_ir_type
+from pathlib import Path
+from typing import List, Dict, Any
 
 
 class DocumentProcessor:
@@ -120,20 +117,16 @@ class DocumentProcessor:
             - ids: List of document IDs
         """
         # Load document
-        print("load documents")
         document_content = self.load_document(file_path)
 
         # Split document
-        print("create chunks")
         chunks = self.split_document(document_content)
-        print("create metadatas")
         metadatas = []
         ids = []
         # Generate metadata and IDs
         documents = []
         metadatas = []
         ids = []
-        print("Chunck loop ")
         for i, chunk in enumerate(chunks):
             doc_id = self.generate_document_id(file_path, i)
             
@@ -164,7 +157,6 @@ class DocumentProcessor:
             - metadatas: List of all metadata dictionaries
             - ids: List of all document IDs
         """
-        print("load documents in multupel loop")
         all_documents = []
         all_metadatas = []
         all_ids = []

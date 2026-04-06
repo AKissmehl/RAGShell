@@ -4,9 +4,9 @@ Configuration Module.
 This module handles loading and managing configuration for the RAG system.
 """
 
-import yaml
 from typing import Dict, Any, Optional
-from pathlib import Path
+
+import yaml
 
 
 class RAGConfig:

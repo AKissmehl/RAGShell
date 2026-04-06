@@ -13,16 +13,18 @@ from .llm_integration import LLMIntegration
 class RAGPipeline:
     """Core RAG pipeline for retrieval and generation."""
 
-    def __init__(self, vector_db: VectorDB, llm_integration: LLMIntegration):
+    def __init__(self, vector_db: VectorDB, llm_integration: LLMIntegration, system_prompt: str = ""):
         """
         Initialize the RAG pipeline.
 
         Args:
             vector_db: VectorDB instance for document retrieval.
             llm_integration: LLMIntegration instance for answer generation.
+            system_prompt: System prompt to guide LLM behavior.
         """
         self.vector_db = vector_db
         self.llm_integration = llm_integration
+        self.system_prompt = system_prompt
 
     def retrieve_documents(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
         """
@@ -51,8 +53,12 @@ class RAGPipeline:
         # Format the context from retrieved documents
         context = "\n\n".join([doc["content"] for doc in retrieved_docs])
 
-        # Create the prompt with context
+        # Create the prompt with system prompt as instruction, not pattern
+        system_instruction = self.system_prompt.split('Example Questions:')[0].strip() if 'Example Questions:' in self.system_prompt else self.system_prompt
+        
         prompt = f"""
+        {system_instruction}
+
         Context:
         {context}
 
@@ -62,7 +68,24 @@ class RAGPipeline:
         """
 
         # Generate answer using LLM
-        return self.llm_integration.generate(prompt)
+        full_response = self.llm_integration.generate(prompt)
+        
+        # Post-process to remove additional Q&A patterns that the LLM sometimes generates
+        # Look for the first complete answer and return only that
+        lines = full_response.split('\n')
+        clean_answer = []
+        
+        for line in lines:
+            # Stop if we detect the start of another Q&A cycle
+            if line.strip().startswith('Question:') or line.strip().startswith('Answer:'):
+                break
+            clean_answer.append(line)
+        
+        # Join and clean up the answer
+        result = '\n'.join(clean_answer).strip()
+        
+        # If we got an empty result (unlikely), return the original
+        return result if result else full_response
 
     def answer_question(self, query: str, top_k: int = 3) -> str:
         """
