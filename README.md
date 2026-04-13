@@ -50,24 +50,28 @@ This project is Python-based. Ensure you have Python and pip installed:
   ```
 
 
-## Lab Task
+## Lab Task: Creating and a testing Pedagogical Chatbot
 
 1. **Test the Chatbot**
    
-   1. There is a new program to fly to the Moon, where the first human flight started a couple of days ago. Start the chatbot and pose a question about the **Artemis program**, then record the answer you receive and your question.
-   2. Now, check the menu options. You can set up the vector database there. Do that, then open the chat again and ask your question again.
-
-2. **Analyze the Response**
-
-   2. Take some quick notes on how the responses differ and whether they are accurate. You can use Wikipedia to verify the responses. Specifically, include a short reflection on how the vector database makes a difference compared to raw LLM.
-
-3. **Set a New System Prompt**
-
-   2. You can find two system prompts in the folder `data/system_prompts`. In the settings, you can set a new system prompt. Go ahead and test both prompts with the prompt below, then record the answers.
-
-4. **Reflect on the Output**
-
-   Reflect on the different outputs and describe how they differ. Keep in mind that we deliberately chose to use a small model that can run on local hardware. Use the following headings to guide your reflection:
-   - **Opportunities and Risks**: What are the opportunities and risks of pedagogical agents that are not tailored to a subject domain?
-   - **Role of RAG**: How does RAG help, and what are its limitations?
-   - **Behavior and Challenges**: From your perspective, what behavior needs to be implemented by a pedagogical agent to be useful, and what are the challenges?
+   1. Start the chatbot and ask a question about the Artemis program.
+   2. Record your question and the response.
+2. Set Up the Vector Database
+   1. Return to the main menu. 
+   2. Select "RAG Setup" and load the provided documents into the vector database. 
+   3. Return to the chat and ask the same question again. 
+   4. Record the new response.
+3. **Analyze the Response**
+   1. Compare the two responses for accuracy and detail. 
+   2. Use Wikipedia or official sources to verify the information. 
+   3. Reflect on how the vector database improved or altered the response.
+4. **Write and Test Your Own System Prompts**
+   - **General Prompt:** Create a prompt for a chatbot with no specific domain focus. 
+   Example: "You are a helpful assistant. Answer questions to the best of your ability, using clear and concise language."
+   - **Subject-Specific Prompt:** Create a prompt tailored to the Artemis program or space exploration.
+Example: "You are an expert on space exploration. Provide detailed, accurate, and technically precise answers about the Artemis program, lunar missions, and related topics."
+5. **Reflect on the Output**
+    - Write a short report (500 words +/- 10%) addressing the following:
+      - **Opportunities and Risks** What are the opportunities and risks of using pedagogical agents not tailored to a specific subject domain? 
+      - **Role of RAG** How does RAG improve the chatbot’s responses? What are its limitations? 
+      - **Behavior and Challenges** What behaviors should a pedagogical agent implement to be useful? What challenges might arise?

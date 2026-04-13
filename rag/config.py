@@ -44,7 +44,13 @@ class RAGConfig:
             "llm": {
                 "provider": "llama_cpp",
                 "model_path": "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
-                "context_window": 2048
+                "context_window": 2048,
+                "generation_params": {
+                    'max_tokens': 256,
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'echo': False
+                }
             },
             "rag": {
                 "embedding_model": "all-MiniLM-L6-v2",
@@ -52,6 +58,13 @@ class RAGConfig:
                 "chunk_overlap": 50,
                 "persist_directory": "data/vector_db",
                 "data_path": self.DEFAULT_DATA_PATH
+            },
+            "download": {
+                "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+                "filename": "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+                "local_dir": "models",
+                "expected_path": "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+                "repo_type": "model"
             }
         }
 
@@ -104,6 +117,15 @@ class RAGConfig:
             RAG configuration dictionary.
         """
         return self.config.get("rag", {})
+
+    def get_download_config(self) -> Dict[str, Any]:
+        """
+        Get download configuration.
+
+        Returns:
+            Download configuration dictionary.
+        """
+        return self.config.get("download", {})
 
     def update_config(self, updates: Dict[str, Any]):
         """

@@ -1,17 +1,17 @@
-from view.cli_view import CLIView
-from rich.text import Text
-from rich.panel import Panel
-from rich.prompt import Prompt
-from rich.box import ROUNDED
-import sys
 import os
-import time
-from typing import Dict, Any
+import sys
+
+from rich.box import ROUNDED
+from rich.panel import Panel
+from rich.text import Text
+
 from rag.config import RAGConfig
-from rag.llm_integration import LLMIntegration
-from rag.vector_db import VectorDB
 from rag.document_processor import DocumentProcessor
+from rag.llm_integration import LLMIntegration
 from rag.rag_pipeline import RAGPipeline
+from rag.vector_db import VectorDB
+from view.cli_view import CLIView
+
 
 class Controller:
     """Controller: Responsible for state management."""
@@ -21,7 +21,7 @@ class Controller:
         self.current_state = "main_menu"
         self.rag_setup_password = "admin123"
         self.first_time_main_menu = True
-        self.system_prompt = "You are a helpful lab assistant. Provide concise, technical answers to laboratory questions."
+        self.system_prompt = "You are a helpful lab assistant. Provide answers to questions."
         self.vector_db_loaded = False
         self.documents_loaded = 0
 
@@ -42,9 +42,9 @@ class Controller:
             rag_config = config.get("rag", {})
 
             # Initialize LLM with proper error handling
-            provider = llm_config.get("provider", "llama_cpp")  # Default to llama_cpp
+            provider = llm_config.get("provider")
             model_path = llm_config.get("model_path", "")
-            context_window = llm_config.get("context_window", 2048)
+            context_window = llm_config.get("context_window")
             
             # Get generation parameters from config
             generation_params = llm_config.get("generation_params", {})
@@ -106,12 +106,12 @@ class Controller:
                 raise
 
             # Initialize document processor
-            chunk_size = rag_config.get("chunk_size", 512)
-            chunk_overlap = rag_config.get("chunk_overlap", 50)
+            chunk_size = rag_config.get("chunk_size")
+            chunk_overlap = rag_config.get("chunk_overlap")
             self.document_processor = DocumentProcessor(chunk_size, chunk_overlap)
 
             # Initialize vector database (but don't connect yet)
-            persist_dir = rag_config.get("persist_directory", "data/vector_db")
+            persist_dir = rag_config.get("persist_directory")
             self.vector_db = VectorDB(persist_directory=persist_dir)
 
             # Initialize RAG pipeline (will be updated when vector DB is loaded)
@@ -231,7 +231,7 @@ class Controller:
 
         try:
             # Get folder selection from user
-            default_path = self.config.get_rag_config().get("data_path", "data/wiki_dump/")
+            default_path = self.config.get_rag_config().get("data_path")
             selected_folder = self.view.show_folder_selection_dialog(default_path)
 
             # Get all markdown files from the selected folder
@@ -256,8 +256,8 @@ class Controller:
 
             if not self.document_processor:
                 self.document_processor = DocumentProcessor(
-                    chunk_size=self.config.get_rag_config().get("chunk_size", 512),
-                    chunk_overlap=self.config.get_rag_config().get("chunk_overlap", 50)
+                    chunk_size=self.config.get_rag_config().get("chunk_size"),
+                    chunk_overlap=self.config.get_rag_config().get("chunk_overlap")
                 )
 
             # Process all documents
@@ -265,7 +265,7 @@ class Controller:
 
             # Add to vector database
             if not self.vector_db:
-                persist_dir = self.config.get_rag_config().get("persist_directory", "data/vector_db")
+                persist_dir = self.config.get_rag_config().get("persist_directory")
                 self.vector_db = VectorDB(persist_directory=persist_dir)
                 self.vector_db.connect()
 
@@ -364,19 +364,22 @@ Runtime Status:
                 )
                 from huggingface_hub import hf_hub_download
             
+            # Get download config
+            download_config = self.config.get_download_config()
+            
             # Create models directory if it doesn't exist
-            os.makedirs("models", exist_ok=True)
+            local_dir = download_config.get("local_dir", "models")
+            os.makedirs(local_dir, exist_ok=True)
             
             # Download the model
             model_path = hf_hub_download(
-                repo_id="TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
-                filename="tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
-                local_dir="models",
-                local_dir_use_symlinks=False
+                repo_id=download_config.get("repo_id"),
+                filename=download_config.get("filename"),
+                local_dir=local_dir,
+                repo_type="model"
             )
-            
             # Rename the file to our expected name
-            expected_path = "models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+            expected_path = download_config.get("expected_path")
             if model_path != expected_path:
                 os.rename(model_path, expected_path)
                 model_path = expected_path
