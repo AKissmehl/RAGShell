@@ -118,13 +118,11 @@ class CLIView:
 
     def show_rag_interaction(self) -> str:
         """Shows the RAG interaction and returns the question."""
-        self._clear_screen()
         if self.FIRST:
-            # Show title
+            self._clear_screen()
             title = Text("Experiment Questions", style="bold cyan", justify="center")
             self.console.print(Panel(title, box=ROUNDED, border_style="cyan"))
-            
-            # Show instructions
+
             instructions = "Ask your question (or 'back' for main menu, 'help' for tips)"
             self.console.print(Panel(instructions, title="[bold]Ask a Question[/bold]", border_style="blue"))
             self.FIRST = False
@@ -167,14 +165,14 @@ class CLIView:
         self._clear_screen()
         title = Text("Select Document Folder", style="bold blue", justify="center")
         self.console.print(Panel(title, box=ROUNDED, border_style="blue"))
-        
+
         menu_items = f"""
         1. Use default folder: {default_path}
         2. Choose custom folder
         """
         self.console.print(Panel(menu_items, title="[bold blue]Folder Selection[/bold blue]", border_style="blue"))
         choice = Prompt.ask("\n[bold blue]Select an option[/bold blue]", default="1")
-        
+
         if choice == "1":
             return default_path
         elif choice == "2":
@@ -186,17 +184,17 @@ class CLIView:
     def show_error(self, message: str):
         """Shows an error message."""
         error_panel = Panel(f"Oh no. {message}",
-                          title="[bold red]Error[/bold red]", 
-                          border_style="red",
-                          style="red")
+                            title="[bold red]Error[/bold red]",
+                            border_style="red",
+                            style="red")
         self.console.print(error_panel)
 
     def show_success(self, message: str):
         """Shows a success message."""
-        success_panel = Panel(f"✓ {message}", 
-                            title="[bold green]Success[/bold green]", 
-                            border_style="green",
-                            style="green")
+        success_panel = Panel(f"✓ {message}",
+                              title="[bold green]Success[/bold green]",
+                              border_style="green",
+                              style="green")
         self.console.print(success_panel)
 
     def get_password(self, prompt: str) -> str:
